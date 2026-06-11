@@ -437,9 +437,9 @@ export default function App() {
           tokens.push(<span key={j} className="text-amber-400 font-semibold">{part}</span>);
         } else if (part.startsWith('"') || (part.endsWith('"') && part.length > 1)) {
           tokens.push(<span key={j} className="text-emerald-400 font-medium">{part}</span>);
-        } else if (['POSConfiguration', 'GhostNodeMergeEvent', 'String', 'LWWElementSet', 'LWWRegister', 'Bias', 'Map', 'LWWElementSetSerializer', 'LWWElementSetSerializer::class'].includes(part) || (part === 'E' && parts[j - 1] === '<')) {
+        } else if (['POSConfiguration', 'String', 'CausalLedger', 'CausalOperation', 'OperationType', 'PersistentMap', 'CausalLedgerSerializer', 'CausalLedgerSerializer::class'].includes(part) || (part === 'E' && parts[j - 1] === '<')) {
           tokens.push(<span key={j} className="text-cyan-400 font-medium">{part}</span>);
-        } else if (['logger', 'info', 'elements', 'size', 'mergedSet', 'onMergeReceived'].includes(part)) {
+        } else if (['logger', 'info', 'elements', 'size', 'operations', 'syncWithReplicas'].includes(part)) {
           tokens.push(<span key={j} className="text-sky-300 font-medium">{part}</span>);
         } else {
           tokens.push(<span key={j} className="text-slate-200">{part}</span>);
@@ -528,7 +528,7 @@ export default function App() {
             </span>
           </h1>
           <p className="text-slate-800 text-[16.5px] font-medium leading-relaxed max-w-3xl mx-auto">
-            GhostNode guarantees eventual convergence on edge devices using LWW-Element-Sets. Explore multi-terminal mutations, conflict resolution ledger analysis, and trie heap sharing structures below.
+            GhostNode guarantees eventual convergence on edge devices using Causal History Logs (OR-Sets). Explore multi-terminal mutations, causal history log analysis, and trie heap sharing structures below.
           </p>
         </section>
 
@@ -564,7 +564,7 @@ export default function App() {
                 In a real-world enterprise retail environment, registers (represented here as Terminal A: Checkout, Terminal B: Drive-Thru, and Terminal C: Kitchen Kiosk) run on separate edge servers to stay fast and operational even during server drops. When connection faults occur (simulated by toggling a node <strong>Offline</strong>), store cashiers must continue processing menu additions and removals.
               </p>
               <p className="text-sm text-slate-900 font-medium leading-relaxed">
-                While disconnected, local menu mutations cause terminals' states and <strong>Vector Clocks</strong> to diverge. Toggling a terminal back <strong>Online</strong> and clicking the sync button triggers GhostNode's LWW-Element-Set conflict resolution, merging additions and deletions step-by-step and converging all registers back to one consistent state.
+                While disconnected, local menu mutations cause terminals' states and <strong>Vector Clocks</strong> to diverge. Toggling a terminal back <strong>Online</strong> and clicking the sync button triggers GhostNode's Causal History Log reconciliation, merging operations step-by-step and converging all registers back to one consistent state.
               </p>
             </div>
             <div className="bg-white rounded-xl p-5 border border-blue-200 flex flex-col justify-center shadow-sm">
@@ -731,7 +731,7 @@ export default function App() {
               Global Sync Engine Control
             </h2>
             <p className="text-slate-800 text-sm font-semibold mt-1.5">
-              Merges the states of all online nodes using the mathematical semi-lattice guarantees of LWW-Element-Sets.
+              Merges the states of all online nodes using the mathematical semi-lattice guarantees of Causal History Logs (OR-Sets).
             </p>
           </div>
           <button
