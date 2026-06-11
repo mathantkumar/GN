@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import {
-  Square3Stack3DIcon,
   SignalIcon,
   CpuChipIcon,
   CircleStackIcon,
@@ -271,36 +270,32 @@ const CODE_SNIPPETS = {
   kotlin: `package com.ghostnode.pos.config
 
 import org.springframework.context.annotation.Configuration
-import com.ghostnode.spring.boot.autoconfigure.EnableGhostNode
-import org.springframework.context.event.EventListener
+import com.ghostnode.spring.persistence.DatabaseConvergenceService
 
-//@EnableGhostNode registers auto-compaction and exposes metrics
 @Configuration
-@EnableGhostNode
-class POSConfiguration {
-    // Reactive event bus callback hook
-    @EventListener
-    fun onMergeReceived(event: GhostNodeMergeEvent<String>) {
-        logger.info("Merged and converged state. Updated size: \${event.mergedSet.elements().size}")
+class POSConfiguration(
+    private val convergenceService: DatabaseConvergenceService
+) {
+    // Database Convergence sync handler hook
+    fun syncWithReplicas(incomingOps: List<CausalOperation<String>>) {
+        val convergedLedger = convergenceService.syncWithRemoteOperations(incomingOps)
+        logger.info("Converged Causal Ledger updated. Size: \${convergedLedger.elements().size}")
     }
 }`,
   yaml: `ghostnode:
   compaction:
-    threshold-ms: 86400000      # 24 hour retention for deleted records
-    cron-schedule: "0 0 * * * ?"   # run compaction hourly
-  clock:
-    prune-threshold-ms: 2592000000 # prune dead edge vectors after 30 days`,
+    auto-enabled: true
+    interval-ms: 60000
+    threshold-ms: 3600000`,
   surrogate: `package com.ghostnode.core.crdt
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.surrogate.Surrogate
+import kotlinx.serialization.KSerializer
 
-// Surrogates translate complex CRDT sets to DB-friendly flat structures
-@Serializable(with = LWWElementSetSerializer::class)
-data class LWWElementSet<E>(
-    val addSet: Map<E, LWWRegister<E>>,
-    val removeSet: Map<E, LWWRegister<E>>,
-    val defaultBias: Bias = Bias.ADD
+// Serializers translate complex causal logs into DB-friendly flat structures
+@Serializable(with = CausalLedgerSerializer::class)
+data class CausalLedger<E>(
+    val operations: PersistentMap<String, CausalOperation<E>> = persistentMapOf()
 )`
 };
 
@@ -331,7 +326,7 @@ export default function App() {
     'Terminal C': false
   });
 
-  const [activeTab, setActiveTab] = useState<'compaction' | 'telemetry' | 'integration'>('telemetry');
+  const [activeTab, setActiveTab] = useState<'compaction' | 'telemetry' | 'integration'>('integration');
   const [integrationSubTab, setIntegrationSubTab] = useState<'kotlin' | 'yaml' | 'surrogate'>('kotlin');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -712,8 +707,7 @@ export default function App() {
                         <pre className="bg-slate-950 text-slate-200 text-[11.5px] p-4 overflow-x-auto max-h-[190px] font-mono leading-relaxed console-scrollbar">
                           {JSON.stringify(
                             {
-                              addSet: node.addSet,
-                              removeSet: node.removeSet,
+                              operations: node.operations,
                               visible: visibleItems
                             },
                             null,
