@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Caudex:ital,wght@0,400;0,700;1,400;1,700&family=Manrope:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-slate-800 bg-slate-50;
+    background-image: 
+      radial-gradient(circle at 100% 100%, #f1f5f9 0%, transparent 35%),
+      radial-gradient(circle at 0% 0%, #e2e8f0 0%, transparent 40%),
+      radial-gradient(circle at 50% 0%, #e0e7ff 0%, #f8fafc 80%);
+    min-height: 100vh;
+    letter-spacing: -0.01em;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-serif font-bold tracking-tight text-slate-900;
+  }
+}
+
+/* Glassmorphism Panel styles */
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-md border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.02)];
+}
+
+.glass-panel-glow {
+  @apply bg-white/80 backdrop-blur-md border border-indigo-200/50 shadow-[0_8px_32px_rgba(99,102,241,0.04)];
+}
+
+/* Styled text input & select elements */
+.input-text {
+  @apply bg-white border border-slate-300 hover:border-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-slate-800 placeholder-slate-400 rounded-xl text-sm px-4 py-2.5 outline-none transition-all duration-200 shadow-sm font-medium;
+}
+
+.select-custom {
+  @apply bg-white border border-slate-300 hover:border-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-slate-800 rounded-xl text-sm px-4 py-2.5 outline-none transition-all duration-200 shadow-sm cursor-pointer font-medium;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+  padding-right: 2.5rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Range Slider Refinements */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  @apply bg-slate-200 h-2 rounded-full;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -4px;
+  @apply bg-indigo-600 h-4 w-4 rounded-full border border-indigo-700 shadow-md transition-all duration-200 hover:scale-110 active:scale-90;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300/80 rounded-full hover:bg-slate-400 transition-all;
+}
+
+/* Console Scrollbars */
+.console-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.console-scrollbar::-webkit-scrollbar-track {
+  @apply bg-slate-950;
+}
+.console-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded hover:bg-slate-700 transition-all;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.22);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite;
+}
