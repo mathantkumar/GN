@@ -14,11 +14,34 @@ export interface CausalOperation {
   dependencies: string[];      // Identifiers of operations observed by the creator
 }
 
+// State-based PN-Counter
+export interface PNCounter {
+  p: { [nodeId: string]: number };
+  n: { [nodeId: string]: number };
+}
+
+// Observed-Remove Map (OR-Map)
+export interface MapOperation {
+  id: string;
+  type: 'PUT' | 'REMOVE';
+  key: string;
+  value: string | null;
+  timestamp: number;
+  dependencies: string[];
+}
+
+export interface ORMap {
+  operations: { [id: string]: MapOperation };
+}
+
 export interface TerminalNode {
   id: string;
   isOnline: boolean;
   operations: { [id: string]: CausalOperation };
+  inventory: PNCounter;
+  orders: ORMap;
   clock: VectorClock;
+  merkleRoot: string;
 }
 
 export interface ConflictRecord {
@@ -36,7 +59,170 @@ export interface MergeHistoryRecord {
   conflictsResolved: number;
 }
 
-// Helper to compute vector clock from operations map
+// ==========================================
+// CRDT Helper Algorithms (PNCounter & ORMap)
+// ==========================================
+
+export function createPNCounter(pVal = 0, nodeId = ''): PNCounter {
+  return {
+    p: nodeId ? { [nodeId]: pVal } : {},
+    n: {}
+  };
+}
+
+export function getPNCounterValue(counter: PNCounter): number {
+  const pSum = Object.values(counter.p).reduce((sum, v) => sum + v, 0);
+  const nSum = Object.values(counter.n).reduce((sum, v) => sum + v, 0);
+  return pSum - nSum;
+}
+
+export function incrementPNCounter(counter: PNCounter, nodeId: string, delta = 1): PNCounter {
+  return {
+    p: { ...counter.p, [nodeId]: (counter.p[nodeId] || 0) + delta },
+    n: counter.n
+  };
+}
+
+export function decrementPNCounter(counter: PNCounter, nodeId: string, delta = 1): PNCounter {
+  return {
+    p: counter.p,
+    n: { ...counter.n, [nodeId]: (counter.n[nodeId] || 0) + delta }
+  };
+}
+
+export function mergePNCounters(c1: PNCounter, c2: PNCounter): PNCounter {
+  const p: { [nodeId: string]: number } = {};
+  const n: { [nodeId: string]: number } = {};
+  const allPKeys = new Set([...Object.keys(c1.p), ...Object.keys(c2.p)]);
+  const allNKeys = new Set([...Object.keys(c1.n), ...Object.keys(c2.n)]);
+
+  allPKeys.forEach(k => {
+    p[k] = Math.max(c1.p[k] || 0, c2.p[k] || 0);
+  });
+  allNKeys.forEach(k => {
+    n[k] = Math.max(c1.n[k] || 0, c2.n[k] || 0);
+  });
+
+  return { p, n };
+}
+
+export function createORMap(): ORMap {
+  return { operations: {} };
+}
+
+export function putORMap(map: ORMap, nodeId: string, key: string, value: string): ORMap {
+  const nodeOps = Object.values(map.operations).filter(op => op.id.startsWith(`${nodeId}:`));
+  const nextIdx = nodeOps.length + 1;
+  const opId = `${nodeId}:${nextIdx}`;
+  const dependencies = Object.keys(map.operations);
+
+  const op: MapOperation = {
+    id: opId,
+    type: 'PUT',
+    key,
+    value,
+    timestamp: Math.floor(Date.now() / 1000) % 10000,
+    dependencies
+  };
+
+  return {
+    operations: { ...map.operations, [opId]: op }
+  };
+}
+
+export function removeORMap(map: ORMap, nodeId: string, key: string): ORMap {
+  const nodeOps = Object.values(map.operations).filter(op => op.id.startsWith(`${nodeId}:`));
+  const nextIdx = nodeOps.length + 1;
+  const opId = `${nodeId}:${nextIdx}`;
+  const dependencies = Object.keys(map.operations);
+
+  const op: MapOperation = {
+    id: opId,
+    type: 'REMOVE',
+    key,
+    value: null,
+    timestamp: Math.floor(Date.now() / 1000) % 10000,
+    dependencies
+  };
+
+  return {
+    operations: { ...map.operations, [opId]: op }
+  };
+}
+
+export function getORMapValue(map: ORMap, key: string): string | null {
+  const ops = Object.values(map.operations);
+  const puts = ops.filter(op => op.type === 'PUT' && op.key === key);
+  if (puts.length === 0) return null;
+
+  const removes = new Set<string>();
+  ops.forEach(op => {
+    if (op.type === 'REMOVE' && op.key === key) {
+      op.dependencies.forEach(dep => removes.add(dep));
+    }
+  });
+
+  const activePuts = puts.filter(put => !removes.has(put.id));
+  if (activePuts.length === 0) return null;
+
+  activePuts.sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return b.timestamp - a.timestamp;
+    return b.id.localeCompare(a.id);
+  });
+
+  return activePuts[0].value;
+}
+
+export function getORMapKeys(map: ORMap): string[] {
+  const keys = new Set<string>();
+  Object.values(map.operations).forEach(op => {
+    if (op.type === 'PUT') keys.add(op.key);
+  });
+  return Array.from(keys).filter(k => getORMapValue(map, k) !== null);
+}
+
+export function mergeORMaps(m1: ORMap, m2: ORMap): ORMap {
+  return {
+    operations: { ...m1.operations, ...m2.operations }
+  };
+}
+
+// ==========================================
+// Hashing & Merkle Tree Algorithms
+// ==========================================
+
+export function fnv1a(str: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+export function computeMerkleRoot(operations: { [id: string]: CausalOperation }): string {
+  const ops = Object.values(operations);
+  if (ops.length === 0) return fnv1a("empty");
+
+  const sortedOps = [...ops].sort((a, b) => a.id.localeCompare(b.id));
+  
+  let currentLevel = sortedOps.map(op => {
+    return fnv1a(`${op.id}:${op.type}:${op.element}:${op.dependencies.sort().join(',')}`);
+  });
+
+  while (currentLevel.length > 1) {
+    const nextLevel: string[] = [];
+    for (let i = 0; i < currentLevel.length; i += 2) {
+      const left = currentLevel[i];
+      const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : left;
+      nextLevel.push(fnv1a(left + right));
+    }
+    currentLevel = nextLevel;
+  }
+
+  return currentLevel[0];
+}
+
 export function computeVectorClock(operations: { [id: string]: CausalOperation }): VectorClock {
   const clock: VectorClock = {};
   Object.keys(operations).forEach(opId => {
@@ -56,7 +242,7 @@ export function computeVectorClock(operations: { [id: string]: CausalOperation }
 // Initial Seed Data
 // ==========================================
 
-const createInitialNode = (id: string, initialItems: string[]): TerminalNode => {
+const createInitialNode = (id: string, initialItems: string[], initInventory: number): TerminalNode => {
   const operations: { [id: string]: CausalOperation } = {};
   let lastOpId = '';
 
@@ -73,11 +259,18 @@ const createInitialNode = (id: string, initialItems: string[]): TerminalNode => 
     lastOpId = opId;
   });
 
+  // Seed OR-Map table orders
+  let orders: ORMap = { operations: {} };
+  orders = putORMap(orders, id, "table-1", "espresso");
+
   return {
     id,
     isOnline: true,
     operations,
-    clock: computeVectorClock(operations)
+    inventory: createPNCounter(initInventory, id),
+    orders,
+    clock: computeVectorClock(operations),
+    merkleRoot: computeMerkleRoot(operations)
   };
 };
 
@@ -87,9 +280,9 @@ const createInitialNode = (id: string, initialItems: string[]): TerminalNode => 
 
 export function useGhostNodeCluster() {
   const [terminals, setTerminals] = useState<{ [id: string]: TerminalNode }>({
-    'Terminal A': createInitialNode('Terminal A', ['espresso', 'latte']),
-    'Terminal B': createInitialNode('Terminal B', ['latte', 'cappuccino']),
-    'Terminal C': createInitialNode('Terminal C', ['espresso', 'flat white'])
+    'Terminal A': createInitialNode('Terminal A', ['espresso', 'latte'], 10),
+    'Terminal B': createInitialNode('Terminal B', ['latte', 'cappuccino'], 8),
+    'Terminal C': createInitialNode('Terminal C', ['espresso', 'flat white'], 12)
   });
 
   const [ledger, setLedger] = useState<ConflictRecord[]>([]);
@@ -106,7 +299,6 @@ export function useGhostNodeCluster() {
     const adds = ops.filter(op => op.type === 'ADD' && op.element === element);
     if (adds.length === 0) return false;
 
-    // Collect all predecessor operations targeted by REMOVE operations in this node's ledger
     const removedIds = new Set<string>();
     ops.forEach(op => {
       if (op.type === 'REMOVE' && op.element === element) {
@@ -114,7 +306,6 @@ export function useGhostNodeCluster() {
       }
     });
 
-    // Element is active if any ADD id is not contained in the set of removed IDs
     return adds.some(add => !removedIds.has(add.id));
   }, []);
 
@@ -169,7 +360,8 @@ export function useGhostNodeCluster() {
         [nodeId]: {
           ...node,
           operations: updatedOps,
-          clock: computeVectorClock(updatedOps)
+          clock: computeVectorClock(updatedOps),
+          merkleRoot: computeMerkleRoot(updatedOps)
         }
       };
     });
@@ -204,7 +396,54 @@ export function useGhostNodeCluster() {
         [nodeId]: {
           ...node,
           operations: updatedOps,
-          clock: computeVectorClock(updatedOps)
+          clock: computeVectorClock(updatedOps),
+          merkleRoot: computeMerkleRoot(updatedOps)
+        }
+      };
+    });
+  }, []);
+
+  // Mutate local Inventory (PN-Counter)
+  const adjustInventory = useCallback((nodeId: string, type: 'INC' | 'DEC', delta = 1) => {
+    setTerminals(prev => {
+      const node = prev[nodeId];
+      const updatedCounter = type === 'INC'
+        ? incrementPNCounter(node.inventory, nodeId, delta)
+        : decrementPNCounter(node.inventory, nodeId, delta);
+      return {
+        ...prev,
+        [nodeId]: {
+          ...node,
+          inventory: updatedCounter
+        }
+      };
+    });
+  }, []);
+
+  // Mutate local Order Mappings (OR-Map)
+  const upsertOrder = useCallback((nodeId: string, key: string, value: string) => {
+    setTerminals(prev => {
+      const node = prev[nodeId];
+      const updatedOrders = putORMap(node.orders, nodeId, key, value);
+      return {
+        ...prev,
+        [nodeId]: {
+          ...node,
+          orders: updatedOrders
+        }
+      };
+    });
+  }, []);
+
+  const removeOrder = useCallback((nodeId: string, key: string) => {
+    setTerminals(prev => {
+      const node = prev[nodeId];
+      const updatedOrders = removeORMap(node.orders, nodeId, key);
+      return {
+        ...prev,
+        [nodeId]: {
+          ...node,
+          orders: updatedOrders
         }
       };
     });
@@ -220,16 +459,26 @@ export function useGhostNodeCluster() {
       return;
     }
 
-    // Merge operations from all online nodes
+    // 1. Merge standard causal operations
     const mergedOperations: { [id: string]: CausalOperation } = {};
     onlineNodes.forEach(node => {
       Object.assign(mergedOperations, node.operations);
     });
 
-    // Compute conflict records for all operations in the merged ledger
+    // 2. Merge PN-Counters
+    let mergedInventory = createPNCounter();
+    onlineNodes.forEach(node => {
+      mergedInventory = mergePNCounters(mergedInventory, node.inventory);
+    });
+
+    // 3. Merge OR-Maps
+    let mergedOrders = createORMap();
+    onlineNodes.forEach(node => {
+      mergedOrders = mergeORMaps(mergedOrders, node.orders);
+    });
+
+    // Compute conflict records for standard operations
     const conflicts: ConflictRecord[] = [];
-    
-    // Sort all merged operations by timestamp/id so they display nicely
     const sortedOps = Object.values(mergedOperations).sort((a, b) => {
       if (a.timestamp !== b.timestamp) {
         return a.timestamp - b.timestamp;
@@ -239,7 +488,6 @@ export function useGhostNodeCluster() {
 
     sortedOps.forEach(op => {
       if (op.type === 'ADD') {
-        // Find if this ADD operation is targeted by any REMOVE operation in the merged operations
         const targetingRemoves = sortedOps.filter(
           other => other.type === 'REMOVE' && other.element === op.element && other.dependencies.includes(op.id)
         );
@@ -265,7 +513,6 @@ export function useGhostNodeCluster() {
           });
         }
       } else {
-        // REMOVE operation
         conflicts.push({
           element: op.element,
           type: 'Causal Tombstone',
@@ -283,12 +530,16 @@ export function useGhostNodeCluster() {
     // Update all online nodes to the converged state
     setTerminals(prev => {
       const updated = { ...prev };
+      const commonRoot = computeMerkleRoot(mergedOperations);
       Object.keys(prev).forEach(id => {
         if (prev[id].isOnline) {
           updated[id] = {
             ...prev[id],
             operations: { ...mergedOperations },
-            clock: computeVectorClock(mergedOperations)
+            inventory: mergedInventory,
+            orders: mergedOrders,
+            clock: computeVectorClock(mergedOperations),
+            merkleRoot: commonRoot
           };
         }
       });
@@ -312,6 +563,9 @@ export function useGhostNodeCluster() {
     toggleOnline,
     addItem,
     removeItem,
+    adjustInventory,
+    upsertOrder,
+    removeOrder,
     triggerMerge,
     getVisibleElements
   };

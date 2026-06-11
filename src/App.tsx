@@ -25,7 +25,7 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
-import { useGhostNodeCluster } from './useGhostNode';
+import { useGhostNodeCluster, getPNCounterValue, getORMapKeys, getORMapValue } from './useGhostNode';
 import logo from './assets/logo.svg';
 
 // ==========================================
@@ -308,6 +308,9 @@ export default function App() {
     toggleOnline,
     addItem,
     removeItem,
+    adjustInventory,
+    upsertOrder,
+    removeOrder,
     triggerMerge,
     getVisibleElements
   } = useGhostNodeCluster();
@@ -680,8 +683,13 @@ export default function App() {
                         <ServerIcon className={`w-5 h-5 ${node.isOnline ? 'text-blue-700' : 'text-rose-500'}`} />
                         {node.id}
                       </h3>
-                      <div className="text-[11px] font-mono text-slate-800 font-bold mt-1.5 bg-slate-100 border border-slate-200 rounded-lg px-2 py-0.5 inline-block">
-                        Clock: {JSON.stringify(node.clock)}
+                      <div className="flex flex-col gap-1 mt-1.5">
+                        <div className="text-[10px] font-mono text-slate-800 font-bold bg-slate-100 border border-slate-200 rounded-lg px-2 py-0.5 inline-block self-start">
+                          Clock: {JSON.stringify(node.clock)}
+                        </div>
+                        <div className="text-[10px] font-mono text-blue-800 font-bold bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 inline-block self-start">
+                          Merkle: {node.merkleRoot}
+                        </div>
                       </div>
                     </div>
 
@@ -720,26 +728,26 @@ export default function App() {
                   </div>
 
                   {/* Active elements list */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5 min-h-[140px] flex flex-col shadow-inner">
-                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-3">
-                      converged items
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 min-h-[100px] flex flex-col shadow-inner">
+                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Menu Catalog (OR-Set)
                     </h4>
                     {visibleItems.length === 0 ? (
-                      <p className="text-sm text-slate-700 font-semibold italic mt-2">No active items.</p>
+                      <p className="text-xs text-slate-700 font-semibold italic mt-2">No active items.</p>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {visibleItems.map(item => (
                           <span
                             key={item}
-                            className="inline-flex items-center gap-1 text-sm bg-white border border-slate-200 px-3 py-1 rounded-lg text-slate-900 shadow-sm font-semibold hover:border-slate-300 transition"
+                            className="inline-flex items-center gap-1 text-xs bg-white border border-slate-200 px-2.5 py-0.5 rounded-lg text-slate-900 shadow-sm font-semibold hover:border-slate-300 transition"
                           >
                             {item}
                             <button
                               onClick={() => removeItem(node.id, item)}
-                              className="text-rose-500 hover:text-rose-700 ml-1.5 p-0.5 rounded hover:bg-rose-50"
+                              className="text-rose-500 hover:text-rose-700 ml-1 p-0.5 rounded hover:bg-rose-50"
                               title="Delete Item"
                             >
-                              <TrashIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <TrashIcon className="w-3 h-3 stroke-[2.5]" />
                             </button>
                           </span>
                         ))}
@@ -747,12 +755,94 @@ export default function App() {
                     )}
                   </div>
 
+                  {/* Inventory (PN-Counter) */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 shadow-inner">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                        Inventory (PN-Counter)
+                      </h4>
+                      <span className="text-xs font-mono font-extrabold text-blue-900 bg-white border border-slate-200 rounded-lg px-2 py-0.5">
+                        Stock: {getPNCounterValue(node.inventory)}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => adjustInventory(node.id, 'INC', 1)}
+                        className="flex-1 bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                      >
+                        + Stock
+                      </button>
+                      <button
+                        onClick={() => adjustInventory(node.id, 'DEC', 1)}
+                        className="flex-1 bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                      >
+                        - Sale
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Orders (OR-Map) */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 shadow-inner">
+                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Active Orders (OR-Map)
+                    </h4>
+                    <div className="space-y-1.5 max-h-[85px] overflow-y-auto pr-1 console-scrollbar mb-2.5">
+                      {getORMapKeys(node.orders).length === 0 ? (
+                        <p className="text-[11px] text-slate-500 italic">No active orders.</p>
+                      ) : (
+                        getORMapKeys(node.orders).map(table => (
+                          <div key={table} className="flex justify-between items-center bg-white border border-slate-200 rounded-lg px-2.5 py-0.5 text-xs">
+                            <span className="font-bold text-slate-800">{table}:</span>
+                            <span className="text-slate-600 font-semibold">{getORMapValue(node.orders, table)}</span>
+                            <button
+                              onClick={() => removeOrder(node.id, table)}
+                              className="text-rose-500 hover:text-rose-700 ml-2 font-bold text-sm"
+                              title="Close Order"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Table #"
+                        id={`table-input-${node.id.replace(/\s+/g, '-').toLowerCase()}`}
+                        className="w-1/3 text-xs border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-600 bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = e.currentTarget.value.trim();
+                            if (val) {
+                              upsertOrder(node.id, val, selectedItems[node.id]);
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const input = document.getElementById(`table-input-${node.id.replace(/\s+/g, '-').toLowerCase()}`) as HTMLInputElement;
+                          const val = input?.value.trim();
+                          if (val) {
+                            upsertOrder(node.id, val, selectedItems[node.id]);
+                            input.value = '';
+                          }
+                        }}
+                        className="flex-grow bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                      >
+                        Set Order
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Controls */}
                   <div className="flex gap-2.5 mb-5">
                     <select
                       value={selectedItems[node.id]}
                       onChange={(e) => handleItemSelect(node.id, e.target.value)}
-                      className="select-custom flex-grow"
+                      className="select-custom flex-grow text-xs"
                     >
                       {MENU_OPTIONS.map(opt => (
                         <option key={opt} value={opt}>{opt}</option>
@@ -760,10 +850,10 @@ export default function App() {
                     </select>
                     <button
                       onClick={() => addItem(node.id, selectedItems[node.id])}
-                      className="bg-blue-700 hover:bg-blue-800 text-white font-bold p-3 rounded-xl shadow-sm hover:shadow active:scale-95 transition-all"
+                      className="bg-blue-700 hover:bg-blue-800 text-white font-bold p-2.5 rounded-xl shadow-sm hover:shadow active:scale-95 transition-all"
                       title="Add Item"
                     >
-                      <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+                      <PlusIcon className="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
 
@@ -789,6 +879,8 @@ export default function App() {
                           {JSON.stringify(
                             {
                               operations: node.operations,
+                              inventory: node.inventory,
+                              orders: node.orders,
                               visible: visibleItems
                             },
                             null,
