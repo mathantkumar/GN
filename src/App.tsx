@@ -532,6 +532,87 @@ export default function App() {
           </p>
         </section>
 
+        {/* CORE CONVERGENCE CAPABILITIES */}
+        <section className="mb-12">
+          <h3 className="text-center font-serif text-2xl font-bold text-slate-950 mb-8">
+            Core Convergence Capabilities
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Feature 1 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <ArrowPathIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">CRDT-Based Replication</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Uses mathematical OR-Set (Observed-Remove Set) laws. Mutations merge via deterministic log unions, ensuring strong eventual convergence without coordination locks.
+                </p>
+              </div>
+            </div>
+            {/* Feature 2 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <CpuChipIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Multi-Device Concurrent Edits</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Edge terminals run mutations offline. Unique operation IDs and causal vectors ensure concurrent edits are preserved and merged deterministically.
+                </p>
+              </div>
+            </div>
+            {/* Feature 3 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <BoltIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Automatic Conflict Resolution</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Causal graph dependency analysis tracks observed states. Conflicting actions (like concurrent adds and deletes) resolve deterministically via OR-Set logic.
+                </p>
+              </div>
+            </div>
+            {/* Feature 4 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <DocumentTextIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Change History Inspection</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Retains an immutable log of operations rather than flattening states. Tracks causality chains, making it easy to audit, debug, and inspect exact convergence paths.
+                </p>
+              </div>
+            </div>
+            {/* Feature 5 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <SignalIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Edge/Offline Sync Protocol</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Specifically architected for network drops. Local mutation histories buffer on edge nodes, synchronizing automatically with central databases upon reconnection.
+                </p>
+              </div>
+            </div>
+            {/* Feature 6 */}
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <CircleStackIcon className="w-5 h-5 text-indigo-650" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Incremental State Transfer</h4>
+                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
+                  Avoids transferring heavy snapshots. Replicas compare operation IDs to exchange and apply only missing log entries (deltas), saving bandwidth.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* TERMINAL NODES CONTROLLER */}
         <section className="mb-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
