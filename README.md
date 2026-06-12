@@ -8,9 +8,13 @@ This application simulates an edge-first point-of-sale (POS) terminal network co
 
 ### Key Simulated Features:
 1. **Multi-Terminal Causal Log Operations**: Simulate offline mutations (ADD/REMOVE) that increment local vector clocks and create causal dependencies.
-2. **Causal Graph & Conflict-free Resolution**: Visualize how deletions target additions causally using an Observed-Remove Set (OR-Set) logic.
-3. **Database Convergence Sync**: Push state updates and execute log unions to converge divergent edge nodes back to a mathematically identical cluster state.
-4. **JVM Heap Trie Sharing Visualizer**: Live rendering of Radix Trie structural sharing, showing heap allocations saved through path copying.
+2. **Multi-Model Edge CRDTs**:
+   - **Inventory Tracker (PN-Counter)**: Run concurrent increments and decrements locally and watch them converge.
+   - **Table Order Checkout (OR-Map)**: Run concurrent key-value mutations and resolve conflict-free mappings.
+3. **State Verification (Merkle Trees)**: View dynamic FNV-1a binary hash roots on each node that diverge offline and instantly converge to identical values upon synchronizing.
+4. **Causal Graph & Conflict-free Resolution**: Visualize how deletions target additions causally using an Observed-Remove Set (OR-Set) logic.
+5. **Database Convergence Sync**: Push state updates and execute log unions to converge divergent edge nodes back to a mathematically identical cluster state.
+6. **JVM Heap Trie Sharing Visualizer**: Live rendering of Radix Trie structural sharing, showing heap allocations saved through path copying.
 
 ## 🛠️ Getting Started
 
