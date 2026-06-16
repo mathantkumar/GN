@@ -1,17 +1,8 @@
 import { useState, useMemo } from 'react';
 import {
-  SignalIcon,
-  CpuChipIcon,
-  CircleStackIcon,
-  BoltIcon,
   ArrowPathIcon,
   PlusIcon,
   TrashIcon,
-  AdjustmentsHorizontalIcon,
-  DocumentTextIcon,
-  SparklesIcon,
-  WifiIcon,
-  ServerIcon,
   CheckIcon
 } from '@heroicons/react/24/outline';
 import {
@@ -210,7 +201,7 @@ function buildLayout(
   childrenKeys.forEach((char, index) => {
     const childNode = node.children[char];
     const childX = x + (index - (childrenKeys.length - 1) / 2) * spread;
-    const childY = y + 75;
+    const childY = y + 70;
     childrenRender.push(
       buildLayout(
         childNode,
@@ -237,6 +228,7 @@ function buildLayout(
   };
 }
 
+// Traverse layout tree to collect SVG elements
 function collectElements(
   node: RenderNode,
   nodeList: RenderNode[],
@@ -329,7 +321,7 @@ export default function App() {
     'Terminal C': false
   });
 
-  const [activeTab, setActiveTab] = useState<'compaction' | 'telemetry' | 'integration'>('integration');
+  const [activeTab, setActiveTab] = useState<'telemetry' | 'compaction' | 'integration'>('integration');
   const [integrationSubTab, setIntegrationSubTab] = useState<'kotlin' | 'yaml' | 'surrogate'>('kotlin');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -377,7 +369,7 @@ export default function App() {
 
   // --- Layout Computation for Trie SVG ---
   const trieLayoutData = useMemo(() => {
-    const rootLayout = buildLayout(trie, 250, 40, 115, 0, copiedNodes, sharedNodes, '');
+    const rootLayout = buildLayout(trie, 250, 40, 110, 0, copiedNodes, sharedNodes, '');
     const nodes: RenderNode[] = [];
     const links: RenderLink[] = [];
     collectElements(rootLayout, nodes, links);
@@ -390,9 +382,9 @@ export default function App() {
     const threshold = compactionTtl;
     const logs: string[] = [];
 
-    logs.push(`⚙️ [${new Date().toLocaleTimeString()}] Pruning Tombstones (TTL: ${threshold}s, rel_ts: ${now})...`);
-    logs.push("✔️ [GC Thread] Swept expired tombstone registers.");
-    logs.push("✔️ [GC Thread] Compacted replica state size successfully.");
+    logs.push(`⚙️ [${new Date().toLocaleTimeString()}] GC sweep threshold set: ${threshold}s (ts: ${now})...`);
+    logs.push("✔️ [Engine Thread] Swept expired database registers.");
+    logs.push("✔️ [Engine Thread] Compacting operation log index size.");
     setCompactionLogs(logs);
   };
 
@@ -412,7 +404,7 @@ export default function App() {
       if (line.trim().startsWith('//')) {
         return (
           <div key={i} className="min-h-[1.5rem]">
-            <span className="text-slate-500 italic select-none">{String(i + 1).padStart(2, ' ')} │ </span>
+            <span className="text-slate-600 italic select-none mr-3">{String(i + 1).padStart(2, ' ')} │ </span>
             <span className="text-slate-500 italic">{line}</span>
           </div>
         );
@@ -435,24 +427,24 @@ export default function App() {
         if (isComment) continue;
 
         if (['package', 'import', 'class', 'fun', 'data', 'val', 'with', 'enum'].includes(part)) {
-          tokens.push(<span key={j} className="text-purple-400 font-semibold">{part}</span>);
+          tokens.push(<span key={j} className="text-indigo-400 font-semibold">{part}</span>);
         } else if (part.startsWith('@')) {
-          tokens.push(<span key={j} className="text-amber-400 font-semibold">{part}</span>);
+          tokens.push(<span key={j} className="text-amber-400 font-medium">{part}</span>);
         } else if (part.startsWith('"') || (part.endsWith('"') && part.length > 1)) {
           tokens.push(<span key={j} className="text-emerald-400 font-medium">{part}</span>);
         } else if (['POSConfiguration', 'String', 'CausalLedger', 'CausalOperation', 'OperationType', 'PersistentMap', 'CausalLedgerSerializer', 'CausalLedgerSerializer::class'].includes(part) || (part === 'E' && parts[j - 1] === '<')) {
-          tokens.push(<span key={j} className="text-cyan-400 font-medium">{part}</span>);
+          tokens.push(<span key={j} className="text-sky-450 font-medium">{part}</span>);
         } else if (['logger', 'info', 'elements', 'size', 'operations', 'syncWithReplicas'].includes(part)) {
-          tokens.push(<span key={j} className="text-sky-300 font-medium">{part}</span>);
+          tokens.push(<span key={j} className="text-indigo-300 font-medium">{part}</span>);
         } else {
-          tokens.push(<span key={j} className="text-slate-200">{part}</span>);
+          tokens.push(<span key={j} className="text-slate-300">{part}</span>);
         }
       }
 
       return (
-        <div key={i} className="min-h-[1.5rem] hover:bg-slate-800/30 transition-colors">
-          <span className="text-slate-600 select-none mr-2 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
-          <span className="font-mono text-[13px]">{tokens}</span>
+        <div key={i} className="min-h-[1.5rem] hover:bg-slate-900/40 transition-colors">
+          <span className="text-slate-700 select-none mr-3 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
+          <span className="font-mono text-[12px]">{tokens}</span>
         </div>
       );
     });
@@ -464,7 +456,7 @@ export default function App() {
       if (!line.trim()) {
         return (
           <div key={i} className="min-h-[1.5rem]">
-            <span className="text-slate-600 select-none mr-2 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
+            <span className="text-slate-700 select-none mr-3 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
           </div>
         );
       }
@@ -482,12 +474,12 @@ export default function App() {
         const key = content.substring(0, colonIdx);
         const val = content.substring(colonIdx);
         return (
-          <div key={i} className="min-h-[1.5rem] hover:bg-slate-800/30 transition-colors">
-            <span className="text-slate-600 select-none mr-2 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
-            <span className="font-mono text-[13px]">
-              <span className="text-sky-400 font-semibold">{key}</span>
-              <span className="text-slate-300">{val.substring(0, 1)}</span>
-              <span className="text-emerald-400">{val.substring(1)}</span>
+          <div key={i} className="min-h-[1.5rem] hover:bg-slate-900/40 transition-colors">
+            <span className="text-slate-700 select-none mr-3 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
+            <span className="font-mono text-[12px]">
+              <span className="text-indigo-400 font-semibold">{key}</span>
+              <span className="text-slate-350">{val.substring(0, 1)}</span>
+              <span className="text-emerald-450">{val.substring(1)}</span>
               {comment && <span className="text-slate-500 italic">{comment}</span>}
             </span>
           </div>
@@ -495,9 +487,9 @@ export default function App() {
       }
 
       return (
-        <div key={i} className="min-h-[1.5rem] hover:bg-slate-800/30 transition-colors">
-          <span className="text-slate-600 select-none mr-2 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
-          <span className="font-mono text-[13px] text-slate-200">
+        <div key={i} className="min-h-[1.5rem] hover:bg-slate-900/40 transition-colors">
+          <span className="text-slate-700 select-none mr-3 font-mono">{String(i + 1).padStart(2, ' ')} │</span>
+          <span className="font-mono text-[12px] text-slate-300">
             {content}
             {comment && <span className="text-slate-500 italic">{comment}</span>}
           </span>
@@ -507,163 +499,174 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen font-sans text-slate-800 antialiased pb-24 selection:bg-blue-100">
-      {/* HEADER */}
-      <header className="max-w-7xl mx-auto px-6 py-5 border-b border-slate-200 flex justify-between items-center mb-10 bg-white/70 backdrop-blur-lg rounded-b-2xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <img src={logo} className="w-8 h-8" alt="GhostNode Logo" />
-          <span className="font-serif text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
-            GhostNode
-          </span>
+    <div className="min-h-screen bg-slate-50/70 font-sans text-slate-800 antialiased grid-bg">
+      {/* STICKY HEADER NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src={logo} className="w-6 h-6" alt="GhostNode Logo" />
+            <span className="font-serif text-lg font-bold tracking-tight text-slate-900">
+              GhostNode
+            </span>
+          </div>
+          <div className="hidden md:flex items-center gap-8 text-xs font-bold tracking-wide uppercase text-slate-500">
+            <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
+            <a href="#sandbox" className="hover:text-indigo-600 transition-colors">POS Sandbox</a>
+            <a href="#trie-visualizer" className="hover:text-indigo-600 transition-colors">Path Sharing</a>
+            <a href="#telemetry" className="hover:text-indigo-600 transition-colors">Specifications</a>
+          </div>
+          <div>
+            <a
+              href="#sandbox"
+              className="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider px-4.5 py-2.5 rounded-lg transition shadow-sm"
+            >
+              Launch Sandbox
+            </a>
+          </div>
         </div>
-        <span className="font-sans text-[10px] font-extrabold uppercase tracking-widest text-slate-600">
-          Sync Platform
-        </span>
-      </header>
+      </nav>
 
       {/* HERO SECTION */}
-      <main className="max-w-7xl mx-auto px-6">
-        <section className="text-center mb-12 max-w-4xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl font-serif font-bold text-slate-900 leading-tight mb-4">
-            Edge-First Consistency Engine <br />
-            <span className="bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">
-              With Zero Coordination Overhead
-            </span>
-          </h1>
-          <p className="text-slate-800 text-[16.5px] font-medium leading-relaxed max-w-3xl mx-auto">
-            GhostNode guarantees eventual convergence on edge devices using Causal History Logs (OR-Sets). Explore multi-terminal mutations, causal history log analysis, and trie heap sharing structures below.
-          </p>
-        </section>
+      <header className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
+        <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-800 text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-650 animate-pulse"></span>
+          GhostNode Starter v1.2 is now live for Spring Boot
+        </div>
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-6">
+          Strong eventual consistency <br />
+          <span className="bg-gradient-to-r from-indigo-700 to-indigo-500 bg-clip-text text-transparent">
+            at the retail edge.
+          </span>
+        </h1>
+        <p className="text-slate-650 text-base sm:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-10">
+          GhostNode is a lightweight, CRDT-driven replication engine. Sync databases, registers, and edge catalogs offline with zero central orchestration overhead.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3.5 justify-center">
+          <a
+            href="#sandbox"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-xl transition duration-150 shadow-md shadow-indigo-600/10 active:scale-[0.98]"
+          >
+            Launch Live Sandbox
+          </a>
+          <a
+            href="#telemetry"
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-xl transition shadow-sm active:scale-[0.98]"
+          >
+            Browse Configuration
+          </a>
+        </div>
+      </header>
 
-        {/* CORE CONVERGENCE CAPABILITIES */}
-        <section className="mb-12">
-          <h3 className="text-center font-serif text-2xl font-bold text-slate-950 mb-8">
-            Core Convergence Capabilities
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* CORE CAPABILITIES SECTION */}
+      <section id="features" className="py-20 border-t border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl font-serif font-bold text-slate-950 mb-3">
+              Engineered for absolute resilience
+            </h2>
+            <p className="text-slate-600 text-sm font-medium leading-relaxed">
+              Replacing heavy locks with mathematical convergence parameters for ultra-low latency.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {/* Feature 1 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <ArrowPathIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">CRDT-Based Replication</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Uses mathematical OR-Set (Observed-Remove Set) laws. Mutations merge via deterministic log unions, ensuring strong eventual convergence without coordination locks.
-                </p>
-              </div>
+            <div>
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">01 / Convergence</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">Deterministic OR-Set Merging</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Mutations converge deterministically via lattice history logs. Operations sync via clean sets without central transactional coordinator locks.
+              </p>
             </div>
             {/* Feature 2 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <CpuChipIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Multi-Device Concurrent Edits</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Edge terminals run mutations offline. Unique operation IDs and causal vectors ensure concurrent edits are preserved and merged deterministically.
-                </p>
-              </div>
+            <div>
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">02 / Architecture</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">Offline Autonomy</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Local registers run transactions during drops. Clock lists identify and queue causal order, synchronizing automatically when connectivity recovers.
+              </p>
             </div>
             {/* Feature 3 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <BoltIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Automatic Conflict Resolution</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Causal graph dependency analysis tracks observed states. Conflicting actions (like concurrent adds and deletes) resolve deterministically via OR-Set logic.
-                </p>
-              </div>
+            <div>
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">03 / State Sync</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">Vector Conflict Audits</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Log lists track dependencies, identifying and resolving concurrent updates (like updates vs deletions) with consistent, rule-based algorithms.
+              </p>
             </div>
             {/* Feature 4 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <DocumentTextIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Change History Inspection</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Retains an immutable log of operations rather than flattening states. Tracks causality chains, making it easy to audit, debug, and inspect exact convergence paths.
-                </p>
-              </div>
+            <div>
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">04 / Performance</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">0ms GC Overhead</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Structural path copying ensures only mutated branches are allocated on the JVM heap. Prevents garbage collector pauses even at high sync frequency.
+              </p>
             </div>
             {/* Feature 5 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <SignalIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Edge/Offline Sync Protocol</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Specifically architected for network drops. Local mutation histories buffer on edge nodes, synchronizing automatically with central databases upon reconnection.
-                </p>
-              </div>
+            <div>
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">05 / Security</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">Hash Merkle Verification</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Each sync cycle validates data integrity via local Merkle trees. Keeps database exchanges protected against state corruption or injection.
+              </p>
             </div>
             {/* Feature 6 */}
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex gap-4">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <CircleStackIcon className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h4 className="font-serif font-bold text-slate-900 text-base mb-1.5">Incremental State Transfer</h4>
-                <p className="text-[12px] text-slate-700 font-semibold leading-relaxed">
-                  Avoids transferring heavy snapshots. Replicas compare operation IDs to exchange and apply only missing log entries (deltas), saving bandwidth.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* TERMINAL NODES CONTROLLER */}
-        <section className="mb-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <div>
-              <h2 className="text-2xl font-serif font-bold text-slate-900 flex items-center gap-2.5">
-                <CircleStackIcon className="w-6 h-6 text-blue-700" />
-                POS Edge Registers (Terminal Nodes)
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">06 / Efficiency</div>
+              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2">Incremental Deltas</h3>
+              <p className="text-xs text-slate-650 font-semibold leading-relaxed">
+                Terminals evaluate hash differences to transfer only missing operations. Minimizes bandwidth consumption over slow or cellular store networks.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* POS INTERACTIVE SANDBOX PLAYGROUND */}
+      <section id="sandbox" className="py-20 border-t border-slate-200 bg-slate-100/40">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+            <div>
+              <h2 className="text-3xl font-serif font-bold text-slate-900 mb-2">
+                POS Sandbox Playground
               </h2>
-              <p className="text-sm text-slate-800 font-semibold mt-1">
-                Perform transactions on registers. Toggle terminals online/offline to simulate sync anomalies.
+              <p className="text-slate-600 text-sm font-medium">
+                Simulate offline mutations, increment quantities, modify maps, and trigger the convergence core.
               </p>
             </div>
-            <div className="text-xs bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-2 font-bold flex items-center gap-2 shadow-sm">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <div>
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                {onlineCount} of 3 Nodes Connected
               </span>
-              {onlineCount} of 3 Nodes Connected
             </div>
           </div>
 
-          {/* Simulation Topology Explanation Card */}
-          <div className="bg-blue-50 border border-blue-205 rounded-2xl p-6 mb-8 text-sm text-slate-900 leading-relaxed grid grid-cols-1 md:grid-cols-3 gap-6 shadow-sm">
-            <div className="md:col-span-2">
-              <h3 className="font-serif font-bold text-slate-900 text-lg mb-2 flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-blue-700" />
-                What does this simulator demonstrate?
-              </h3>
-              <p className="mb-3 text-sm text-slate-900 font-medium leading-relaxed">
-                In a real-world enterprise retail environment, registers (represented here as Terminal A: Checkout, Terminal B: Drive-Thru, and Terminal C: Kitchen Kiosk) run on separate edge servers to stay fast and operational even during server drops. When connection faults occur (simulated by toggling a node <strong>Offline</strong>), store cashiers must continue processing menu additions and removals.
+          {/* Quick simulator workflow */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+            <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="font-serif font-bold text-slate-950 text-base mb-2">Replication Simulator</h3>
+              <p className="text-slate-650 text-xs font-semibold leading-relaxed mb-3">
+                Toggle terminal nodes offline to simulate a network outage, and execute local updates (add items, adjust stock counts, create orders). Because the node is offline, those updates will remain local.
               </p>
-              <p className="text-sm text-slate-900 font-medium leading-relaxed">
-                While disconnected, local menu mutations cause terminals' states and <strong>Vector Clocks</strong> to diverge. Toggling a terminal back <strong>Online</strong> and clicking the sync button triggers GhostNode's Causal History Log reconciliation, merging operations step-by-step and converging all registers back to one consistent state.
+              <p className="text-slate-650 text-xs font-semibold leading-relaxed">
+                When you toggle the nodes back online and hit <strong>Synchronize Cluster State</strong>, the cluster will exchange state vectors, merging concurrent additions and tombstones deterministically.
               </p>
             </div>
-            <div className="bg-white rounded-xl p-5 border border-blue-200 flex flex-col justify-center shadow-sm">
-              <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider mb-3.5 flex items-center gap-1.5">
-                <CheckIcon className="w-4 h-4 text-emerald-600 stroke-[3]" /> Conflict Resolution Steps:
-              </h4>
-              <ul className="text-xs text-slate-900 font-bold space-y-2.5">
-                <li><strong className="text-blue-950 font-extrabold">1. Simulate splits:</strong> Toggle a node offline and add or remove items.</li>
-                <li><strong className="text-blue-950 font-extrabold">2. Clock advancement:</strong> Local operations increment the vector clock.</li>
-                <li><strong className="text-blue-950 font-extrabold">3. Sync converge:</strong> Reconnect nodes and sync; conflict log handles divergence.</li>
-              </ul>
+            <div className="lg:col-span-4 bg-indigo-950 text-indigo-100 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+              <div>
+                <h4 className="font-serif font-bold text-white text-sm mb-2">Sync Instructions</h4>
+                <ul className="text-[11px] text-indigo-200 font-medium space-y-2 leading-relaxed">
+                  <li><strong>1. Split State:</strong> Toggle a node offline and perform changes.</li>
+                  <li><strong>2. Clock shift:</strong> Independent vector clocks will advance.</li>
+                  <li><strong>3. Converge:</strong> Bring online and click sync; logs trace decisions.</li>
+                </ul>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Terminal nodes listing */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             {Object.values(terminals).map(node => {
               const visibleItems = getVisibleElements(node);
               const isCollapsed = !inspectorsOpen[node.id];
@@ -671,83 +674,84 @@ export default function App() {
               return (
                 <div
                   key={node.id}
-                  className={`bg-white border rounded-2xl p-6 transition-all duration-300 shadow-sm hover:shadow-md ${node.isOnline
-                      ? 'border-slate-200'
-                      : 'border-rose-200 bg-rose-50/10'
-                    }`}
+                  className={`bg-white border rounded-2xl p-6 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col ${
+                    node.isOnline ? 'border-slate-200' : 'border-rose-250/60 bg-rose-50/5'
+                  }`}
                 >
-                  {/* Node Header */}
-                  <div className="flex justify-between items-center mb-3">
+                  {/* Card Header */}
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <ServerIcon className={`w-5 h-5 ${node.isOnline ? 'text-blue-700' : 'text-rose-500'}`} />
-                        {node.id}
-                      </h3>
+                      <h3 className="font-serif text-lg font-bold text-slate-900">{node.id}</h3>
                       <div className="flex flex-col gap-1 mt-1.5">
-                        <div className="text-[10px] font-mono text-slate-800 font-bold bg-slate-100 border border-slate-200 rounded-lg px-2 py-0.5 inline-block self-start">
+                        <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-150 font-bold self-start">
                           Clock: {JSON.stringify(node.clock)}
-                        </div>
-                        <div className="text-[10px] font-mono text-blue-800 font-bold bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 inline-block self-start">
-                          Merkle: {node.merkleRoot}
-                        </div>
+                        </span>
+                        <span className="text-[10px] font-mono text-indigo-650 bg-indigo-50/50 px-2 py-0.5 rounded border border-indigo-100/50 font-bold self-start">
+                          Hash: {node.merkleRoot}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Online Toggle Switch */}
+                    {/* Toggle Switch */}
                     <button
                       id={`toggle-${node.id.replace(/\s+/g, '-').toLowerCase()}`}
                       onClick={() => toggleOnline(node.id)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${node.isOnline ? 'bg-blue-700' : 'bg-slate-300'
-                        }`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-250 ease-in-out focus:outline-none ${
+                        node.isOnline ? 'bg-indigo-600' : 'bg-slate-300'
+                      }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${node.isOnline ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-250 ease-in-out ${
+                          node.isOnline ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                       />
                     </button>
                   </div>
 
-                  {/* Online Tag */}
+                  {/* Status Indicator */}
                   <div className="mb-4">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-0.5 ${node.isOnline
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                      }`}>
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide rounded-full px-2 py-0.5 border ${
+                        node.isOnline
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          : 'bg-rose-50 text-rose-700 border-rose-100'
+                      }`}
+                    >
                       {node.isOnline ? (
                         <>
-                          <WifiIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                          Connected (Online)
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Connected
                         </>
                       ) : (
                         <>
-                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                          Offline (Disconnected)
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                          Offline Mode
                         </>
                       )}
                     </span>
                   </div>
 
-                  {/* Active elements list */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 min-h-[100px] flex flex-col shadow-inner">
-                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                  {/* OR-Set Catalog */}
+                  <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 mb-4 min-h-[90px] flex flex-col">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                       Menu Catalog (OR-Set)
                     </h4>
                     {visibleItems.length === 0 ? (
-                      <p className="text-xs text-slate-700 font-semibold italic mt-2">No active items.</p>
+                      <p className="text-xs text-slate-400 italic mt-1 font-medium">No items present.</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {visibleItems.map(item => (
                           <span
                             key={item}
-                            className="inline-flex items-center gap-1 text-xs bg-white border border-slate-200 px-2.5 py-0.5 rounded-lg text-slate-900 shadow-sm font-semibold hover:border-slate-300 transition"
+                            className="inline-flex items-center gap-1.5 text-xs bg-white border border-slate-200 pl-2.5 pr-1 py-0.5 rounded-lg text-slate-800 shadow-sm font-semibold transition hover:border-slate-350"
                           >
                             {item}
                             <button
                               onClick={() => removeItem(node.id, item)}
-                              className="text-rose-500 hover:text-rose-700 ml-1 p-0.5 rounded hover:bg-rose-50"
+                              className="text-slate-400 hover:text-rose-500 p-0.5 rounded transition"
                               title="Delete Item"
                             >
-                              <TrashIcon className="w-3 h-3 stroke-[2.5]" />
+                              <TrashIcon className="w-3.5 h-3.5" />
                             </button>
                           </span>
                         ))}
@@ -755,49 +759,52 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Inventory (PN-Counter) */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 shadow-inner">
+                  {/* PN-Counter Inventory */}
+                  <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 mb-4">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                         Inventory (PN-Counter)
                       </h4>
-                      <span className="text-xs font-mono font-extrabold text-blue-900 bg-white border border-slate-200 rounded-lg px-2 py-0.5">
-                        Stock: {getPNCounterValue(node.inventory)}
+                      <span className="text-xs font-mono font-bold text-indigo-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-sm">
+                        Qty: {getPNCounterValue(node.inventory)}
                       </span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => adjustInventory(node.id, 'INC', 1)}
-                        className="flex-1 bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                        className="flex-grow bg-white border border-slate-200 hover:bg-slate-50 text-slate-750 text-xs font-bold py-1.5 px-2 rounded-lg shadow-xs transition active:scale-[0.98]"
                       >
-                        + Stock
+                        - Sale
                       </button>
                       <button
                         onClick={() => adjustInventory(node.id, 'DEC', 1)}
-                        className="flex-1 bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                        className="flex-grow bg-white border border-slate-200 hover:bg-slate-50 text-slate-755 text-xs font-bold py-1.5 px-2 rounded-lg shadow-xs transition active:scale-[0.98]"
                       >
-                        - Sale
+                        + Return
                       </button>
                     </div>
                   </div>
 
-                  {/* Active Orders (OR-Map) */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 shadow-inner">
-                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Active Orders (OR-Map)
+                  {/* OR-Map Active Orders */}
+                  <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 mb-4">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Active Orders Map (OR-Map)
                     </h4>
-                    <div className="space-y-1.5 max-h-[85px] overflow-y-auto pr-1 console-scrollbar mb-2.5">
+                    <div className="space-y-1 max-h-[85px] overflow-y-auto pr-1 mb-3">
                       {getORMapKeys(node.orders).length === 0 ? (
-                        <p className="text-[11px] text-slate-500 italic">No active orders.</p>
+                        <p className="text-xs text-slate-400 italic">No orders.</p>
                       ) : (
                         getORMapKeys(node.orders).map(table => (
-                          <div key={table} className="flex justify-between items-center bg-white border border-slate-200 rounded-lg px-2.5 py-0.5 text-xs">
-                            <span className="font-bold text-slate-800">{table}:</span>
-                            <span className="text-slate-600 font-semibold">{getORMapValue(node.orders, table)}</span>
+                          <div
+                            key={table}
+                            className="flex justify-between items-center bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs"
+                          >
+                            <span className="font-semibold text-slate-650">{table}:</span>
+                            <span className="text-slate-800 font-bold">{getORMapValue(node.orders, table)}</span>
                             <button
                               onClick={() => removeOrder(node.id, table)}
-                              className="text-rose-500 hover:text-rose-700 ml-2 font-bold text-sm"
-                              title="Close Order"
+                              className="text-slate-400 hover:text-rose-500 font-bold transition ml-2 text-sm"
+                              title="Clear Order"
                             >
                               &times;
                             </button>
@@ -810,7 +817,7 @@ export default function App() {
                         type="text"
                         placeholder="Table #"
                         id={`table-input-${node.id.replace(/\s+/g, '-').toLowerCase()}`}
-                        className="w-1/3 text-xs border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-600 bg-white"
+                        className="w-1/3 text-xs border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-indigo-500 bg-white"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             const val = e.currentTarget.value.trim();
@@ -823,22 +830,24 @@ export default function App() {
                       />
                       <button
                         onClick={() => {
-                          const input = document.getElementById(`table-input-${node.id.replace(/\s+/g, '-').toLowerCase()}`) as HTMLInputElement;
+                          const input = document.getElementById(
+                            `table-input-${node.id.replace(/\s+/g, '-').toLowerCase()}`
+                          ) as HTMLInputElement;
                           const val = input?.value.trim();
                           if (val) {
                             upsertOrder(node.id, val, selectedItems[node.id]);
                             input.value = '';
                           }
                         }}
-                        className="flex-grow bg-white border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm active:scale-95 transition"
+                        className="flex-grow bg-white border border-slate-200 hover:bg-slate-50 text-slate-750 text-xs font-bold py-1.5 px-2 rounded-lg shadow-xs transition active:scale-[0.98]"
                       >
                         Set Order
                       </button>
                     </div>
                   </div>
 
-                  {/* Controls */}
-                  <div className="flex gap-2.5 mb-5">
+                  {/* Actions & Selector */}
+                  <div className="flex gap-2 mt-auto pt-3 border-t border-slate-100">
                     <select
                       value={selectedItems[node.id]}
                       onChange={(e) => handleItemSelect(node.id, e.target.value)}
@@ -850,32 +859,28 @@ export default function App() {
                     </select>
                     <button
                       onClick={() => addItem(node.id, selectedItems[node.id])}
-                      className="bg-blue-700 hover:bg-blue-800 text-white font-bold p-2.5 rounded-xl shadow-sm hover:shadow active:scale-95 transition-all"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2.5 rounded-lg shadow-sm active:scale-95 transition flex items-center justify-center"
                       title="Add Item"
                     >
-                      <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+                      <PlusIcon className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* JSON view */}
-                  <div className="border-t border-slate-200 pt-4">
+                  {/* Inspect JSON Panel */}
+                  <div className="border-t border-slate-100 mt-4 pt-3">
                     <button
                       onClick={() => toggleInspector(node.id)}
-                      className="w-full flex justify-between items-center text-xs font-bold text-slate-800 uppercase tracking-wider focus:outline-none hover:text-blue-700 transition"
+                      className="w-full flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-wider hover:text-indigo-650 transition"
                     >
-                      <span>Local State JSON</span>
-                      <span className="bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-0.5">{isCollapsed ? 'Show' : 'Hide'}</span>
+                      <span>inspect local state</span>
+                      <span className="bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-0.5 text-[9px] font-bold">
+                        {isCollapsed ? 'Show' : 'Hide'}
+                      </span>
                     </button>
 
                     {!isCollapsed && (
-                      <div className="mt-3.5 rounded-xl border border-slate-950 overflow-hidden shadow-md">
-                        <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                          <span className="text-[10px] text-slate-400 font-mono ml-auto">state_inspect.json</span>
-                        </div>
-                        <pre className="bg-slate-950 text-slate-200 text-[11.5px] p-4 overflow-x-auto max-h-[190px] font-mono leading-relaxed console-scrollbar">
+                      <div className="mt-3 rounded-lg border border-slate-200 overflow-hidden shadow-inner">
+                        <pre className="bg-slate-900 text-slate-350 text-[10px] p-3 overflow-x-auto max-h-[140px] font-mono leading-normal console-scrollbar">
                           {JSON.stringify(
                             {
                               operations: node.operations,
@@ -894,80 +899,77 @@ export default function App() {
               );
             })}
           </div>
-        </section>
 
-        {/* SYNC PANEL */}
-        <section className="mb-12 bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 glass-panel-glow">
-          <div className="max-w-2xl">
-            <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center gap-2.5">
-              <ArrowPathIcon className="w-6 h-6 text-blue-700 stroke-[2.5]" />
-              Global Sync Engine Control
-            </h2>
-            <p className="text-slate-800 text-sm font-semibold mt-1.5">
-              Merges the states of all online nodes using the mathematical semi-lattice guarantees of Causal History Logs (OR-Sets).
-            </p>
-          </div>
-          <button
-            id="sync-replicas-btn"
-            onClick={triggerMerge}
-            disabled={onlineCount === 0}
-            className={`w-full md:w-auto font-sans font-bold flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl shadow-lg transition duration-200 ${onlineCount === 0
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-350'
-                : 'bg-blue-700 hover:bg-blue-800 text-white hover:shadow-xl hover:shadow-blue-100 active:scale-[0.98]'
+          {/* Sync Trigger block */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+            <div className="max-w-2xl">
+              <h3 className="font-serif font-bold text-slate-900 text-lg">Global Merge Controller</h3>
+              <p className="text-slate-600 text-xs font-semibold leading-relaxed mt-1">
+                Trigger state synchronization to merge operational maps and inventories using the semi-lattice rules of causal histories.
+              </p>
+            </div>
+            <button
+              id="sync-replicas-btn"
+              onClick={triggerMerge}
+              disabled={onlineCount === 0}
+              className={`w-full md:w-auto font-sans font-bold flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl transition shadow-sm ${
+                onlineCount === 0
+                  ? 'bg-slate-100 text-slate-400 border border-slate-250 cursor-not-allowed shadow-none'
+                  : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-[0.98]'
               }`}
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${onlineCount > 0 ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-            Synchronize Cluster State
-          </button>
-        </section>
+            >
+              <ArrowPathIcon
+                className={`w-4 h-4 ${onlineCount > 0 ? 'animate-spin' : ''}`}
+                style={{ animationDuration: '3s' }}
+              />
+              Synchronize Cluster State
+            </button>
+          </div>
 
-        {/* RESOLUTION LEDGER */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-serif font-bold text-slate-900 mb-1.5 flex items-center gap-2.5">
-            <BoltIcon className="w-6 h-6 text-blue-700 stroke-[2.2]" />
-            Causality Resolution Ledger
-          </h2>
-          <p className="text-sm text-slate-800 font-semibold mb-6">
-            Tracks resolved conflicts, vector clock relationships, and mathematical tie-breakers applied during the sync process.
-          </p>
-
-          <div className="bg-white border border-slate-300 rounded-2xl overflow-hidden shadow-sm">
+          {/* Conflict Auditing Ledger */}
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+              <h3 className="font-serif font-bold text-slate-900 text-base">Causality Resolution Ledger</h3>
+              <p className="text-slate-500 text-xs font-semibold">
+                Live transactional sync convergence decisions.
+              </p>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-300 text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    <th className="px-6 py-4 border-r border-slate-200">Menu Item</th>
-                    <th className="px-6 py-4 border-r border-slate-200">Conflict Category</th>
-                    <th className="px-6 py-4 border-r border-slate-200">Winning Node</th>
-                    <th className="px-6 py-4 border-r border-slate-200">Simulated Time</th>
-                    <th className="px-6 py-4 border-r border-slate-200">Resolution Rule</th>
-                    <th className="px-6 py-4">Causality Rationale</th>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-3">Menu Item</th>
+                    <th className="px-6 py-3">Conflict Category</th>
+                    <th className="px-6 py-3">Winner node</th>
+                    <th className="px-6 py-3">Logical Time</th>
+                    <th className="px-6 py-3">Resolution Rule</th>
+                    <th className="px-6 py-3">Convergence Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-sm">
+                <tbody className="divide-y divide-slate-150 text-xs text-slate-700">
                   {ledger.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-slate-700 font-bold italic bg-slate-50/50">
-                        No conflicts recorded. Try taking a node offline, executing local changes, bringing it online, and clicking sync!
+                      <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic font-medium">
+                        Replicas are fully merged. Simulate offline transactions to view conflict resolutions.
                       </td>
                     </tr>
                   ) : (
                     ledger.map((rec, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-6 py-4 font-mono font-bold text-slate-900 border-r border-slate-100">{rec.element}</td>
-                        <td className="px-6 py-4 border-r border-slate-100">
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                      <tr key={idx} className="hover:bg-slate-50/40 transition">
+                        <td className="px-6 py-3.5 font-mono font-bold text-slate-900">{rec.element}</td>
+                        <td className="px-6 py-3.5">
+                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                             {rec.type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-slate-900 border-r border-slate-100">{rec.winnerNode}</td>
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-slate-800 border-r border-slate-100">{rec.winnerTimestamp}s</td>
-                        <td className="px-6 py-4 border-r border-slate-100">
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-extrabold bg-sky-50 text-sky-900 border border-sky-200">
+                        <td className="px-6 py-3.5 font-semibold text-slate-900">{rec.winnerNode}</td>
+                        <td className="px-6 py-3.5 font-mono text-[10px] text-slate-500">{rec.winnerTimestamp}s</td>
+                        <td className="px-6 py-3.5">
+                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                             {rec.reason}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-800 font-semibold leading-relaxed max-w-sm">
+                        <td className="px-6 py-3.5 text-slate-500 font-medium text-[11px] max-w-xs leading-normal">
                           {rec.details}
                         </td>
                       </tr>
@@ -977,84 +979,84 @@ export default function App() {
               </table>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* RADIX TRIE STRUCTURAL SHARING */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-serif font-bold text-slate-900 mb-1.5 flex items-center gap-2.5">
-            <CpuChipIcon className="w-6 h-6 text-blue-700 stroke-[2.2]" />
-            JVM Heap Optimization: Radix Trie Path Sharing
-          </h2>
-          <p className="text-sm text-slate-800 font-semibold mb-6">
-            GhostNode prevents object duplication allocations under high-frequency synchronization using Trie path-copying.
-          </p>
-
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      {/* RADIX TRIE STRUCTURAL PATH SHARING VISUALIZER */}
+      <section id="trie-visualizer" className="py-20 border-t border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             {/* Controls */}
             <div className="lg:col-span-5">
-              <h3 className="text-lg font-serif font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-blue-700" />
-                Path-Copying Simulator
-              </h3>
-              <p className="text-sm text-slate-800 font-semibold mb-6 leading-relaxed">
-                Insert a new word starting with 'a' or 'b' (like <strong className="text-blue-950 font-bold">"apricot"</strong> or <strong className="text-blue-950 font-bold">"avocado"</strong>) to visualize trie mutations. Nodes in <span className="text-emerald-700 font-bold">green</span> are newly allocated on the heap, while branches in <span className="text-sky-700 font-bold">blue</span> represent reference-shared nodes.
+              <div className="font-mono text-indigo-500 text-xs font-bold mb-3 tracking-widest uppercase">
+                Heap Optimization
+              </div>
+              <h2 className="text-3xl font-serif font-bold text-slate-950 mb-4">
+                JVM Heap Optimization: Radix Path Sharing
+              </h2>
+              <p className="text-slate-650 text-sm font-medium leading-relaxed mb-6">
+                To prevent garbage collection cycles under high concurrency, GhostNode uses path-copying. Check allocation changes by inserting a new word starting with 'a' or 'b' (e.g. <strong>"avocado"</strong> or <strong>"apricot"</strong>).
               </p>
 
-              <div className="flex gap-2.5 mb-6">
+              <div className="flex gap-2 mb-6">
                 <input
                   id="trie-insert-input"
                   type="text"
                   value={trieInput}
                   onChange={(e) => setTrieInput(e.target.value)}
-                  placeholder="Insert word (e.g. apricot)..."
-                  className="input-text flex-grow"
+                  placeholder="Insert word (e.g. avocado)..."
+                  className="input-text flex-grow focus:ring-0 focus:border-indigo-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleTrieInsert()}
                 />
                 <button
                   id="trie-insert-btn"
-                  className="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition active:scale-95"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition active:scale-95"
                   onClick={handleTrieInsert}
                 >
-                  Insert & Share
+                  Insert Word
                 </button>
               </div>
 
               {trieStats ? (
-                <div className="bg-blue-50/50 border border-blue-200 p-5 rounded-xl text-xs space-y-2 text-slate-800 leading-normal font-semibold">
-                  <div className="font-bold text-blue-950 text-sm flex items-center gap-1 mb-1">
-                    <SparklesIcon className="w-4 h-4 text-blue-800" />
-                    Allocation Sharing Analysis
-                  </div>
-                  <div>• Nodes created (new allocations): <span className="text-emerald-700 font-bold text-sm">{trieStats.copied}</span></div>
-                  <div>• Nodes shared (reference sharing): <span className="text-sky-700 font-bold text-sm">{trieStats.shared}</span></div>
-                  <div>• Saved allocation footprint: <span className="text-blue-900 font-extrabold text-sm">{((trieStats.shared / (trieStats.copied + trieStats.shared)) * 100).toFixed(0)}%</span> of JVM Heap objects.</div>
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl text-xs space-y-2 text-slate-650 font-semibold leading-normal">
+                  <div className="font-bold text-slate-950 text-sm mb-1.5">Memory Metrics</div>
+                  <div>• Allocated nodes: <span className="text-emerald-600 font-mono font-bold">{trieStats.copied}</span></div>
+                  <div>• Reused references: <span className="text-indigo-650 font-mono font-bold">{trieStats.shared}</span></div>
+                  <div>• Heap reuse percentage: <span className="text-slate-900 font-bold">{((trieStats.shared / (trieStats.copied + trieStats.shared)) * 100).toFixed(0)}%</span> of trie size.</div>
                 </div>
               ) : (
-                <div className="border border-dashed border-slate-300 text-center py-5 rounded-xl text-xs text-slate-700 font-bold bg-slate-50/50">
-                  Insert a word to run structural allocation analysis.
+                <div className="border border-dashed border-slate-200 text-center py-6 rounded-xl text-xs text-slate-400 font-medium">
+                  Insert a word to run allocation analysis.
                 </div>
               )}
             </div>
 
-            {/* Tree SVG */}
-            <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-5 flex justify-center items-center overflow-x-auto shadow-inner min-h-[360px]">
-              <svg width="500" height="350" className="max-w-full">
+            {/* Tree SVG diagram */}
+            <div className="lg:col-span-7 bg-slate-50 border border-slate-250/70 rounded-2xl p-6 flex flex-col justify-center items-center overflow-x-auto min-h-[380px] shadow-xs">
+              {/* Clean Legend */}
+              <div className="flex gap-4 mb-4 text-[10px] font-bold text-slate-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  New Heap Instance
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  Shared Reference
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-350"></span>
+                  Unmodified Node
+                </div>
+              </div>
+
+              <svg width="500" height="300" className="max-w-full">
                 <defs>
                   <marker id="trie-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(15,23,42,0.15)" />
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#cbd5e1" />
                   </marker>
-                  <filter id="node-shadow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.1" />
-                  </filter>
-                  <filter id="glow-emerald" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#10b981" floodOpacity="0.5" />
-                  </filter>
-                  <filter id="glow-sky" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#38bdf8" floodOpacity="0.5" />
-                  </filter>
                 </defs>
 
-                {/* Draw links */}
+                {/* Draw Links */}
                 {trieLayoutData.links.map((link, idx) => (
                   <line
                     key={idx}
@@ -1062,27 +1064,22 @@ export default function App() {
                     y1={link.fromY}
                     x2={link.toX}
                     y2={link.toY}
-                    stroke={link.isCopied ? '#10b981' : link.isShared ? '#38bdf8' : '#cbd5e1'}
-                    strokeWidth={link.isCopied ? '3.5' : link.isShared ? '2.5' : '1.5'}
+                    stroke={link.isCopied ? '#10b981' : link.isShared ? '#6366f1' : '#e2e8f0'}
+                    strokeWidth={link.isCopied ? '2' : link.isShared ? '1.5' : '1'}
                     markerEnd="url(#trie-arrow)"
                     className="transition-all duration-300"
                   />
                 ))}
 
-                {/* Draw nodes */}
+                {/* Draw Nodes */}
                 {trieLayoutData.nodes.map((node) => {
                   let fill = '#ffffff';
-                  let stroke = '#94a3b8';
-                  let filter = 'url(#node-shadow)';
+                  let stroke = '#cbd5e1';
 
                   if (node.isCopied) {
-                    fill = '#ffffff';
                     stroke = '#10b981';
-                    filter = 'url(#glow-emerald)';
                   } else if (node.isShared) {
-                    fill = '#ffffff';
-                    stroke = '#38bdf8';
-                    filter = 'url(#glow-sky)';
+                    stroke = '#6366f1';
                   }
 
                   return (
@@ -1090,18 +1087,17 @@ export default function App() {
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={node.char === 'ROOT' ? '18' : '14'}
+                        r={node.char === 'ROOT' ? '15' : '11'}
                         fill={fill}
                         stroke={stroke}
-                        strokeWidth={node.isCopied || node.isShared ? '3' : '1.5'}
-                        filter={filter}
-                        className="transition-all duration-300 group-hover:scale-110"
+                        strokeWidth={node.isCopied || node.isShared ? '2.5' : '1.5'}
+                        className="transition-all duration-200 group-hover:scale-[1.04]"
                       />
                       <text
                         x={node.x}
-                        y={node.y + 4}
-                        fill={node.isCopied ? '#059669' : node.isShared ? '#0284c7' : '#1e293b'}
-                        fontSize={node.char === 'ROOT' ? '9' : '11'}
+                        y={node.y + 3.5}
+                        fill={node.isCopied ? '#047857' : node.isShared ? '#4338ca' : '#475569'}
+                        fontSize={node.char === 'ROOT' ? '8' : '10'}
                         fontFamily="monospace"
                         fontWeight="bold"
                         textAnchor="middle"
@@ -1115,92 +1111,122 @@ export default function App() {
               </svg>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* PERFORMANCE METRICS & SPRING INTEGRATION */}
-        <section className="mb-12">
-          {/* Tab Navigation */}
-          <div className="flex justify-center mb-6">
-            <div className="flex bg-slate-200 border border-slate-300 p-1.5 rounded-2xl shadow-sm">
+      {/* METRICS & CONFIGURATION TABS */}
+      <section id="telemetry" className="py-20 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Tabs bar */}
+          <div className="flex justify-center mb-10">
+            <div className="flex bg-slate-200 border border-slate-250 p-1 rounded-xl shadow-xs">
               <button
                 id="tab-telemetry-btn"
-                className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === 'telemetry'
-                    ? 'bg-white text-blue-950 border border-slate-200 shadow-sm font-extrabold'
-                    : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
+                className={`px-5 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                  activeTab === 'telemetry'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-950'
+                }`}
                 onClick={() => setActiveTab('telemetry')}
               >
                 Telemetry Dashboard
               </button>
               <button
                 id="tab-compaction-btn"
-                className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === 'compaction'
-                    ? 'bg-white text-blue-950 border border-slate-200 shadow-sm font-extrabold'
-                    : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
+                className={`px-5 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                  activeTab === 'compaction'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-950'
+                }`}
                 onClick={() => setActiveTab('compaction')}
               >
                 JVM Garbage Compaction
               </button>
               <button
                 id="tab-integration-btn"
-                className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${activeTab === 'integration'
-                    ? 'bg-white text-blue-950 border border-slate-200 shadow-sm font-extrabold'
-                    : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
+                className={`px-5 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                  activeTab === 'integration'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-950'
+                }`}
                 onClick={() => setActiveTab('integration')}
               >
-                Spring Starter Configuration
+                Spring Boot Starter
               </button>
             </div>
           </div>
 
-          {/* TELEMETRY BOARD */}
+          {/* TELEMETRY CHART */}
           {activeTab === 'telemetry' && (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-              <h3 className="text-xl font-serif font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <SignalIcon className="w-6 h-6 text-blue-700 stroke-[2.2]" />
-                Micrometer Telemetry Board (Last 10 Runs)
+              <h3 className="text-xl font-serif font-bold text-slate-900 mb-2">
+                Micrometer Dashboard (Latency & Conflicts)
               </h3>
+              <p className="text-slate-500 text-xs font-semibold mb-8">
+                Execution speed analysis and conflict counts resolved during merge operations.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Latency Area Chart */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-inner">
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-4 text-center">
-                    Merge Execution Time (ms)
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-xs">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 text-center">
+                    Merge Latency (ms)
                   </h4>
-                  <div className="h-64">
+                  <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={history}>
                         <defs>
                           <linearGradient id="colorLatency" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#1d4ed8" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" />
-                        <XAxis dataKey="name" stroke="#475569" strokeWidth={1.5} fontSize={11} fontWeight="bold" />
-                        <YAxis stroke="#475569" strokeWidth={1.5} fontSize={11} fontWeight="bold" label={{ value: 'ms', angle: -90, position: 'insideLeft', fill: '#475569', fontWeight: 'bold' }} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
-                        <Area type="monotone" dataKey="latencyMs" stroke="#1d4ed8" strokeWidth={3} fillOpacity={1} fill="url(#colorLatency)" />
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={10} />
+                        <YAxis
+                          stroke="#64748b"
+                          fontSize={10}
+                          label={{ value: 'ms', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '11px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="latencyMs"
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          fillOpacity={1}
+                          fill="url(#colorLatency)"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Conflicts Bar Chart */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-inner">
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-4 text-center">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-xs">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 text-center">
                     Conflicts Automatically Resolved
                   </h4>
-                  <div className="h-64">
+                  <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={history}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" />
-                        <XAxis dataKey="name" stroke="#475569" strokeWidth={1.5} fontSize={11} fontWeight="bold" />
-                        <YAxis stroke="#475569" strokeWidth={1.5} fontSize={11} fontWeight="bold" allowDecimals={false} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
-                        <Bar dataKey="conflictsResolved" fill="#0284c7" radius={[5, 5, 0, 0]} />
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={10} />
+                        <YAxis stroke="#64748b" fontSize={10} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '11px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <Bar dataKey="conflictsResolved" fill="#818cf8" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1212,32 +1238,32 @@ export default function App() {
           {/* JVM COMPACTION */}
           {activeTab === 'compaction' && (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-              <h3 className="text-xl font-serif font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <AdjustmentsHorizontalIcon className="w-6 h-6 text-blue-700 stroke-[2.2]" />
-                Tombstone Compaction Configuration
+              <h3 className="text-xl font-serif font-bold text-slate-900 mb-2">
+                Tombstone Garbage Compaction
               </h3>
-              <p className="text-sm text-slate-800 font-semibold mb-6">
-                Periodic compaction is scheduled automatically under high-throughput environments to prune expired element records.
+              <p className="text-slate-500 text-xs font-semibold mb-8">
+                Prune historical deletion vectors to reclaim memory without causing synchronization faults.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-2">Tombstone Compaction Policy</h4>
-                  <p className="text-xs text-slate-800 font-semibold leading-relaxed mb-4">
-                    When data is removed, CRDTs retain "tombstones" to prevent replicas from resurrecting deleted objects during synchronization cycles. Compaction policy sweeps these tombstones out of JVM heap storage after a specified time threshold (TTL).
+                  <h4 className="text-sm font-bold text-slate-900 mb-2">GC Pruning Policy</h4>
+                  <p className="text-xs text-slate-650 font-semibold leading-relaxed mb-4">
+                    In causal replication systems, deletions leave a "tombstone" history payload so replicas are aware of removals. Under high throughput, tombstones accumulate, increasing memory footprint. Pruning sweeps discard tombstones older than the threshold.
                   </p>
 
-                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-805 text-xs font-mono text-slate-250 space-y-2 mb-4 shadow-sm select-none">
-                    <div className="text-slate-500 italic"># Spring Properties compaction scheduling</div>
-                    <div>ghostnode.compaction.threshold-ms=<span className="text-emerald-400">86400000</span></div>
-                    <div>ghostnode.compaction.cron-schedule=<span className="text-emerald-400">"0 0 * * * ?"</span></div>
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-850 text-xs font-mono text-slate-300 space-y-1 mb-4 select-none">
+                    <div className="text-slate-550 italic mb-1"># application.yml compaction limits</div>
+                    <div>ghostnode.compaction.threshold-ms=<span className="text-emerald-450">86400000</span></div>
+                    <div>ghostnode.compaction.cron-schedule=<span className="text-emerald-450">"0 0 * * * ?"</span></div>
                   </div>
 
-                  {/* Manual TTL Adjustments */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
-                    <div className="flex justify-between items-center mb-2.5">
-                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Tombstone TTL:</span>
-                      <span className="text-xs font-mono font-bold text-blue-800 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">{compactionTtl} seconds</span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-xs">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tombstone TTL:</span>
+                      <span className="text-xs font-mono font-bold text-indigo-750 bg-indigo-50 px-2 py-0.5 rounded">
+                        {compactionTtl} seconds
+                      </span>
                     </div>
                     <input
                       id="tombstone-ttl-slider"
@@ -1246,49 +1272,52 @@ export default function App() {
                       max="60"
                       value={compactionTtl}
                       onChange={(e) => setCompactionTtl(parseInt(e.target.value))}
-                      className="w-full accent-blue-700 my-2"
+                      className="w-full accent-indigo-600 my-2"
                     />
                     <button
                       id="tombstone-compact-btn"
-                      className="bg-blue-700 hover:bg-blue-800 text-white font-bold w-full py-2.5 rounded-xl text-xs mt-3.5 shadow-sm hover:shadow transition"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold w-full py-2 rounded-lg text-xs mt-3.5 shadow-sm transition"
                       onClick={handleCompaction}
                     >
-                      Trigger Garbage Collection Compaction
+                      Trigger Manual Compact
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-2">Heap Saving Performance Impact</h4>
-                  <p className="text-xs text-slate-800 font-semibold leading-relaxed mb-4">
-                    Path-copying Radix Trie allocations avoid full map object duplications, ensuring zero garbage collector pauses.
+                  <h4 className="text-sm font-bold text-slate-900 mb-2">Heap footprint optimization</h4>
+                  <p className="text-xs text-slate-650 font-semibold leading-relaxed mb-4">
+                    Graph demonstrates heap size differences between copy-on-write systems vs path-shared trie trees.
                   </p>
-                  <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                  <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-xs">
                     <div>
-                      <div className="flex justify-between text-xs font-bold mb-1.5 text-slate-800">
-                        <span>GhostNode Trie sharing allocation:</span>
-                        <span className="text-emerald-700 font-extrabold">12.4 KB</span>
+                      <div className="flex justify-between text-xs font-bold mb-1.5 text-slate-700">
+                        <span>GhostNode Path sharing structures:</span>
+                        <span className="text-emerald-600 font-extrabold font-mono">12.4 KB</span>
                       </div>
-                      <div className="w-full bg-slate-250 rounded-full h-2.5">
-                        <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: '9%' }}></div>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '9%' }}></div>
                       </div>
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs font-bold mb-1.5 text-slate-800">
-                        <span>Naive Copy-on-Write maps:</span>
-                        <span className="text-rose-700 font-extrabold">142.8 KB</span>
+                      <div className="flex justify-between text-xs font-bold mb-1.5 text-slate-700">
+                        <span>Naive Copy-on-Write lists:</span>
+                        <span className="text-rose-600 font-extrabold font-mono">142.8 KB</span>
                       </div>
-                      <div className="w-full bg-slate-250 rounded-full h-2.5">
-                        <div className="bg-rose-500 h-2.5 rounded-full" style={{ width: '100%' }}></div>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div className="bg-rose-500 h-2 rounded-full" style={{ width: '100%' }}></div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Compaction logs */}
                   <div className="mt-4">
-                    <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">compaction trace</h5>
-                    <pre className="bg-slate-950 text-slate-100 text-[11px] p-4 rounded-xl font-mono border border-slate-900 min-h-[72px] console-scrollbar">
-                      {compactionLogs.length === 0 ? "No manual GC compaction run. Click trigger button to run." : compactionLogs.join("\n")}
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Trace output logs
+                    </h5>
+                    <pre className="bg-slate-900 text-slate-350 text-[10px] p-3 rounded-lg font-mono border border-slate-800 min-h-[60px] console-scrollbar">
+                      {compactionLogs.length === 0
+                        ? 'No manual GC compaction run. Adjust TTL slider and execute trigger.'
+                        : compactionLogs.join('\n')}
                     </pre>
                   </div>
                 </div>
@@ -1296,72 +1325,71 @@ export default function App() {
             </div>
           )}
 
-          {/* SPRING INTEGRATION */}
+          {/* SPRING STARTER DESIGNER */}
           {activeTab === 'integration' && (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
               <div className="mb-6">
-                <h3 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
-                  <DocumentTextIcon className="w-6 h-6 text-blue-700 stroke-[2.2]" />
-                  Enterprise Integration & Spring Boot Setup
+                <h3 className="text-xl font-serif font-bold text-slate-900">
+                  Enterprise Integration Configuration
                 </h3>
-                <p className="text-sm text-slate-805 font-semibold mt-1.5">
-                  GhostNode fits into Spring infrastructures via custom starters, registering scheduled tombstones garbage collection, Micrometer telemetry charts, and serialization surrogates.
+                <p className="text-slate-650 text-xs font-semibold mt-1">
+                  Integrate GhostNode to coordinate data models, register convergence listeners, and scale synchronization schedules.
                 </p>
               </div>
 
-              {/* IDE Code Editor Frame */}
-              <div className="rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shadow-lg mb-8">
+              {/* IDE Code Frame */}
+              <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shadow-md mb-8">
                 {/* Tabs bar */}
-                <div className="bg-[#0f172a] px-4 pt-2 border-b border-slate-800 flex items-end justify-between">
+                <div className="bg-[#0b0f19] px-4 pt-2 border-b border-slate-800 flex items-end justify-between">
                   <div className="flex gap-1">
-                    {/* Window Controls */}
+                    {/* Fake window controller circles */}
                     <div className="flex gap-1.5 items-center mr-6 mb-3">
-                      <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm shadow-rose-900/30"></span>
-                      <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-900/30"></span>
-                      <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-900/30"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
                     </div>
 
-                    {/* Tab 1: Kotlin file */}
                     <button
                       onClick={() => setIntegrationSubTab('kotlin')}
-                      className={`px-4 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${integrationSubTab === 'kotlin'
-                          ? 'bg-slate-950 text-sky-400 border-slate-800'
-                          : 'bg-transparent text-slate-500 border-transparent hover:bg-slate-900/40 hover:text-slate-300'
-                        }`}
+                      className={`px-3 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${
+                        integrationSubTab === 'kotlin'
+                          ? 'bg-slate-900 text-indigo-400 border-slate-800'
+                          : 'bg-transparent text-slate-550 border-transparent hover:bg-slate-800/40 hover:text-slate-300'
+                      }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                       POSConfiguration.kt
                     </button>
 
-                    {/* Tab 2: YAML file */}
                     <button
                       onClick={() => setIntegrationSubTab('yaml')}
-                      className={`px-4 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${integrationSubTab === 'yaml'
-                          ? 'bg-slate-950 text-sky-400 border-slate-800'
-                          : 'bg-transparent text-slate-500 border-transparent hover:bg-slate-900/40 hover:text-slate-300'
-                        }`}
+                      className={`px-3 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${
+                        integrationSubTab === 'yaml'
+                          ? 'bg-slate-900 text-indigo-400 border-slate-800'
+                          : 'bg-transparent text-slate-550 border-transparent hover:bg-slate-800/40 hover:text-slate-300'
+                      }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                       application.yml
                     </button>
 
-                    {/* Tab 3: Surrogate file */}
                     <button
                       onClick={() => setIntegrationSubTab('surrogate')}
-                      className={`px-4 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${integrationSubTab === 'surrogate'
-                          ? 'bg-slate-950 text-sky-400 border-slate-800'
-                          : 'bg-transparent text-slate-500 border-transparent hover:bg-slate-900/40 hover:text-slate-300'
-                        }`}
+                      className={`px-3 py-2 text-xs font-mono font-semibold rounded-t-lg transition flex items-center gap-2 border-t border-x ${
+                        integrationSubTab === 'surrogate'
+                          ? 'bg-slate-900 text-indigo-400 border-slate-800'
+                          : 'bg-transparent text-slate-555 border-transparent hover:bg-slate-800/40 hover:text-slate-300'
+                      }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                       SerializationSurrogate.kt
                     </button>
                   </div>
 
-                  {/* Right side COPY button */}
+                  {/* Copy Button */}
                   <button
                     onClick={handleCopyCode}
-                    className="mb-2 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 shadow-md active:scale-95"
+                    className="mb-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-800/50 text-slate-300 hover:text-white transition flex items-center gap-1.5"
                   >
                     {copyFeedback ? (
                       <>
@@ -1379,58 +1407,51 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Editor Content Area */}
-                <div className="p-5 overflow-x-auto max-h-[380px] console-scrollbar bg-slate-950">
+                {/* Editor Content */}
+                <div className="p-5 overflow-x-auto max-h-[340px] console-scrollbar bg-slate-900">
                   {integrationSubTab === 'kotlin' && renderKotlinHighlight(CODE_SNIPPETS.kotlin)}
                   {integrationSubTab === 'yaml' && renderYamlHighlight(CODE_SNIPPETS.yaml)}
                   {integrationSubTab === 'surrogate' && renderKotlinHighlight(CODE_SNIPPETS.surrogate)}
                 </div>
               </div>
 
-              {/* Three Pillars Cards */}
+              {/* Three Pillar Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-sm hover:shadow-md transition">
-                  <div className="w-9 h-9 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center mb-4 shadow-sm">
-                    <CircleStackIcon className="w-5 h-5 text-sky-700 stroke-[2.2]" />
-                  </div>
-                  <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Schema-Safe Persistence</h4>
-                  <p className="text-xs text-slate-800 font-semibold leading-relaxed">
-                    Surrogate wrappers compile complex CRDT vector lists into standard database rows. If newer fields are added in upstream code releases, missing columns on older database records default gracefully without triggering crash exceptions.
+                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-xs hover:shadow-sm transition">
+                  <h4 className="font-serif font-bold text-slate-900 text-sm mb-2">
+                    Flexible Serializers
+                  </h4>
+                  <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                    Surrogate layers compile complex causal graphs into schema-safe table formats, handling missing fields gracefully without database model updates.
                   </p>
                 </div>
 
-                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-sm hover:shadow-md transition">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center mb-4 shadow-sm">
-                    <svg className="w-5 h-5 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Secure Tunnel Syncing</h4>
-                  <p className="text-xs text-slate-800 font-semibold leading-relaxed">
-                    Edge terminals secure state manifests using hash signature checks. Vector clock ranges and registers mutations are validated before merge sequences execute, shielding system states from unauthorized transaction injections.
+                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-xs hover:shadow-sm transition">
+                  <h4 className="font-serif font-bold text-slate-900 text-sm mb-2">
+                    Secure Manifest Signatures
+                  </h4>
+                  <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                    Terminals authenticate sync payloads via hash signature verification, preventing malicious transaction injections during merge cycles.
                   </p>
                 </div>
 
-                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-sm hover:shadow-md transition">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-250 flex items-center justify-center mb-4 shadow-sm">
-                    <svg className="w-5 h-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-                    </svg>
-                  </div>
-                  <h4 className="font-serif font-bold text-slate-900 text-base mb-2">Radix Trie GC Protection</h4>
-                  <p className="text-xs text-slate-800 font-semibold leading-relaxed">
-                    Underlying path copying ensures only altered branch paths duplicate during mutations, sharing the remainder of the trie by reference. Mitigates JVM heap churn and keeps garbage collection pauses at 0.0 ms.
+                <div className="p-5 border border-slate-200 rounded-xl bg-slate-50 shadow-xs hover:shadow-sm transition">
+                  <h4 className="font-serif font-bold text-slate-900 text-sm mb-2">
+                    Automatic Compact Sweeping
+                  </h4>
+                  <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                    The Spring starter automatically registers micrometer timers and launches background tombstone sweep schedulers based on standard cron schedules.
                   </p>
                 </div>
               </div>
             </div>
           )}
-        </section>
-      </main>
+        </div>
+      </section>
 
       {/* FOOTER */}
-      <footer className="max-w-7xl mx-auto border-t border-slate-200 pt-8 text-center text-slate-700 text-xs font-bold">
-        <p>GhostNode Eventual Consistency Platform © 2026. Made with React, Tailwind CSS, and Recharts.</p>
+      <footer className="max-w-7xl mx-auto border-t border-slate-200 mt-12 py-10 text-center text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+        <p>GhostNode Eventual Consistency Platform © 2026. Powered by React, Tailwind CSS, and Recharts.</p>
       </footer>
     </div>
   );

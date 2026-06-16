@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Caudex', 'serif'],
-        sans: ['Manrope', 'sans-serif'],
+        serif: ['"Plus Jakarta Sans"', 'sans-serif'],
+        sans: ['"Inter"', 'sans-serif'],
       },
     },
   },
